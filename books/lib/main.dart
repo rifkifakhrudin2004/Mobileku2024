@@ -1,11 +1,5 @@
-import 'dart:async';
-import 'package:books/navigation_dialog.dart';
-import 'package:books/navigation_first.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
-import 'package:http/http.dart' as http;
-import 'package:async/async.dart';
-import 'geolocation.dart'; // Import LocationScreen
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,136 +11,68 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Rifki Fakhrudin(23)',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const NavigationDialogScreen(), // Ganti FuturePage dengan LocationScreen
+      home: const MyHomePage(),
     );
   }
 }
 
-class FuturePage extends StatefulWidget {
-  const FuturePage({super.key});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
 
   @override
-  State<FuturePage> createState() => _FuturePageState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _FuturePageState extends State<FuturePage> {
-  String result = '';
+class _MyHomePageState extends State<MyHomePage> {
+  int appCounter = 0;
 
-  Future<Response> getData() async {
-    const authority = 'www.googleapis.com';
-    const path = '/books/v1/volumes/Eud3DwAAQBAJ';
-    Uri url = Uri.https(authority, path);
-    return http.get(url);
-  }
+  Future<void> readAndWritePreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    appCounter = prefs.getInt('appCounter') ?? 0;
+    appCounter++;
 
-  Future<int> returnOneAsync() async {
-    await Future.delayed(const Duration(seconds: 3));
-    return 1;
-  }
+    await prefs.setInt('appCounter', appCounter);
 
-  Future<int> returnTwoAsync() async {
-    await Future.delayed(const Duration(seconds: 3));
-    return 2;
-  }
-
-  Future<int> returnThreeAsync() async {
-    await Future.delayed(const Duration(seconds: 3));
-    return 3;
-  }
-
-  Future count() async {
-    int total = 0;
-    total = await returnOneAsync();
-    total += await returnTwoAsync();
-    total += await returnThreeAsync();
     setState(() {
-      result = total.toString();
+      appCounter = appCounter;
     });
   }
 
-  late Completer completer;
-
-  Future getNumber() {
-    completer = Completer<int>();
-    calculate2();
-    return completer.future;
-  }
-
-  Future calculate() async {
-    await Future.delayed(const Duration(seconds: 5));
-    completer.complete(42);
-  }
-
-  Future calculate2() async {
-    try {
-      await new Future.delayed(const Duration(seconds: 5));
-      completer.complete(42);
-    } catch (_) {
-      completer.completeError({});
-    }
-  }
-
-  void returnFG() {
-    final futures = Future.wait<int>([
-      returnOneAsync(),
-      returnTwoAsync(),
-      returnThreeAsync(),
-    ]);
-
-    futures.then((List<int> value) {
-      int total = 0;
-      for (var element in value) {
-        total += element;
-      }
-      setState(() {
-        result = total.toString();
-      });
+  Future<void> deletePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); 
+    setState(() {
+      appCounter = 0; 
     });
   }
 
-  Future returnError() async {
-    await Future.delayed(const Duration(seconds: 2));
-    throw Exception('something terrible happened!');
-  }
-
-  Future handleError() async {
-    try {
-      await returnError();
-    } catch (error) {
-      setState(() {
-        result = error.toString();
-      });
-    } finally {
-      print('complete');
-    }
+  @override
+  void initState() {
+    super.initState();
+    readAndWritePreferences();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Back from the Future'),
+        title: const Text('Shared Preferences'),
+        backgroundColor: Colors.yellow,
       ),
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            const Spacer(),
-            ElevatedButton(
-              child: const Text('GO!'),
-              onPressed: () {
-                handleError();
-              },
+            Text(
+              'You have opened the app $appCounter times.',
             ),
-            const Spacer(),
-            Text(result),
-            const Spacer(),
-            const CircularProgressIndicator(),
-            const Spacer(),
+            // Mengubah onPressed untuk memanggil deletePreference
+            ElevatedButton(
+              onPressed: () {
+                deletePreference(); // Memanggil metode deletePreference
+              },
+              child: const Text('Reset counter'),
+            ),
           ],
         ),
       ),
